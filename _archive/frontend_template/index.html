@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{SITE_TITLE}}</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google ReCAPTCHA (Placeholder for Site Key) -->
+    <script src="https://www.google.com/recaptcha/api.js?render={{RECAPTCHA_SITE_KEY}}"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>{{SITE_TITLE}}</h1>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="hero">
+            <h2>Welcome to our service</h2>
+            <p>Please fill out the form below to get in touch.</p>
+        </section>
+
+        <section class="form-section">
+            <form id="mainForm">
+                <!-- Form fields will be injected here by the generator or JS -->
+                {{FORM_FIELDS_HTML}}
+                
+                <div class="form-group">
+                    <button type="submit" id="submitBtn">Submit Request</button>
+                </div>
+                <div id="formMessage" class="hidden"></div>
+            </form>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; {{YEAR}} {{SITE_DOMAIN}}. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        const SITE_ID = "{{SITE_ID}}";
+        const API_URL = "{{API_URL}}";
+        const RECAPTCHA_SITE_KEY = "{{RECAPTCHA_SITE_KEY}}";
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "site-deployment",
+  "version": "1.0.0",
+  "description": "Deployment script for S3",
+  "scripts": {
+    "deploy": "node deploy.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.400.0",
+    "mime-types": "^2.1.35"
+  }
+}

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Service Admin</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #f3f4f6;
+            --white: #ffffff;
+            --text: #1f2937;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; }
+        
+        /* Sidebar */
+        aside { width: 250px; background: var(--white); border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; }
+        .brand { padding: 20px; font-weight: bold; font-size: 1.2rem; border-bottom: 1px solid #e5e7eb; }
+        nav { flex: 1; padding: 10px; }
+        nav a { display: block; padding: 10px; color: var(--text); text-decoration: none; border-radius: 6px; margin-bottom: 5px; cursor: pointer; }
+        nav a:hover, nav a.active { background: #eff6ff; color: var(--primary); }
+
+        /* Main Content */
+        main { flex: 1; padding: 40px; overflow-y: auto; }
+        h1 { margin-top: 0; }
+        
+        /* Cards */
+        .card { background: var(--white); padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        
+        /* Forms */
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 500; }
+        input, textarea, select { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; box-sizing: border-box; }
+        button { background: var(--primary); color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { opacity: 0.9; }
+
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #e5e7eb; }
+        th { background: #f9fafb; }
+        
+        /* Utility */
+        .hidden { display: none !important; }
+        .flex { display: flex; gap: 10px; }
+        .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; background: #e5e7eb; }
+        .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index: 1000; }
+        .modal-content { background:white; padding:30px; border-radius:8px; width: 600px; max-height: 90vh; overflow-y: auto; }
+    </style>
+</head>
+<body>
+
+<aside>
+    <div class="brand">Form Service</div>
+    <nav>
+        <a onclick="showView('dashboard')" class="active" id="nav-dashboard">Dashboard</a>
+        <a onclick="showView('projects')" id="nav-projects">Projects / Config</a>
+    </nav>
+</aside>
+
+<main id="app">
+    <!-- Dashboard View -->
+    <div id="view-dashboard">
+        <h1>Dashboard</h1>
+        <div class="card">
+            <p>Select a project from the sidebar to view submissions or configure settings.</p>
+        </div>
+        <div id="recent-projects-list"></div>
+    </div>
+
+    <!-- Projects List View -->
+    <div id="view-projects" class="hidden">
+        <div class="flex" style="justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1>Projects</h1>
+            <button onclick="openProjectModal()">+ New Project</button>
+        </div>
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Domain</th>
+                        <th>Owner</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="projects-table-body">
+                    <!-- Populated by JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Submissions View -->
+    <div id="view-submissions" class="hidden">
+        <div class="flex" style="justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1>Submissions: <span id="current-project-name"></span></h1>
+            <button onclick="showView('projects')">Back to Projects</button>
+        </div>
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Date</th>
+                        <th>Data</th>
+                        <th>Metadata</th>
+                    </tr>
+                </thead>
+                <tbody id="submissions-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<!-- Project Modal -->
+<div id="project-modal" class="hidden modal">
+    <div class="modal-content">
+        <h2 id="modal-title">Configure Project</h2>
+        <form id="project-form" onsubmit="saveProject(event)">
+            <div class="form-group">
+                <label>Project ID (API Key)</label>
+                <input type="text" name="id" required placeholder="e.g. site_001">
+            </div>
+            <div class="form-group">
+                <label>Project Name</label>
+                <input type="text" name="name" placeholder="e.g. My Portfolio">
+            </div>
+            <div class="form-group">
+                <label>Allowed Domain (CORS)</label>
+                <input type="text" name="domain" placeholder="e.g. https://chetan.com">
+            </div>
+            <div class="form-group">
+                <label>Owner Email (Notification Receiver)</label>
+                <input type="email" name="owner_email" required>
+            </div>
+            
+            <hr>
+            <h3>Email Configuration</h3>
+            <div class="form-group">
+                <label>Owner Email Subject</label>
+                <input type="text" name="email_template_subject">
+            </div>
+            
+            <div class="form-group">
+                <label>Send Auto-Reply to Visitor?</label>
+                <select name="send_visitor_email">
+                    <option value="false">No</option>
+                    <option value="true">Yes</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Visitor Email Subject</label>
+                <input type="text" name="visitor_email_subject">
+            </div>
+            <div class="form-group">
+                <label>Visitor Email Body</label>
+                <textarea name="visitor_email_body" rows="3"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Attachment URLs (comma separated)</label>
+                <input type="text" name="attachment_urls" placeholder="https://example.com/file1.pdf, https://example.com/file2.zip">
+            </div>
+
+            <div class="flex" style="justify-content: flex-end; margin-top: 20px;">
+                <button type="button" onclick="closeProjectModal()" style="background: #9ca3af; margin-right: 10px;">Cancel</button>
+                <button type="submit">Save Project</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const API_BASE = '/api/admin';
+
+    // Navigation
+    function showView(viewName) {
+        ['dashboard', 'projects', 'submissions'].forEach(v => {
+            document.getElementById(`view-${v}`).classList.add('hidden');
+            const nav = document.getElementById(`nav-${v}`);
+            if(nav) nav.classList.remove('active');
+        });
+        document.getElementById(`view-${viewName}`).classList.remove('hidden');
+        const nav = document.getElementById(`nav-${viewName}`);
+        if(nav) nav.classList.add('active');
+
+        if(viewName === 'projects') loadProjects();
+    }
+
+    // Load Projects
+    async function loadProjects() {
+        try {
+            const res = await fetch(`${API_BASE}/projects`);
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.error || `Server Error: ${res.status}`);
+            }
+            
+            const projects = await res.json();
+            
+            if (!Array.isArray(projects)) {
+                 throw new Error("Invalid response format");
+            }
+
+            const tbody = document.getElementById('projects-table-body');
+            tbody.innerHTML = projects.map(p => `
+                <tr>
+                    <td>${p.id}</td>
+                    <td>${p.name || '-'}</td>
+                    <td>${p.domain || '*'}</td>
+                    <td>${p.owner_email}</td>
+                    <td>
+                        <button onclick='editProject(${JSON.stringify(p)})'>Config</button>
+                        <button onclick="viewSubmissions('${p.id}', '${p.name || p.id}')">View Data</button>
+                    </td>
+                </tr>
+            `).join('');
+        } catch (err) {
+            console.error("Failed to load projects:", err);
+            const tbody = document.getElementById('projects-table-body');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" style="color: red; text-align: center;">
+                        <strong>Error loading projects:</strong> ${err.message}<br>
+                        <small>Please ensure the backend database is running.</small>
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    // Edit/Create Project
+    function openProjectModal() {
+        document.getElementById('project-form').reset();
+        document.getElementById('modal-title').innerText = 'New Project';
+        document.getElementById('project-modal').classList.remove('hidden');
+    }
+
+    function editProject(project) {
+        const form = document.getElementById('project-form');
+        form.id.value = project.id;
+        form.name.value = project.name || '';
+        form.domain.value = project.domain || '';
+        form.owner_email.value = project.owner_email || '';
+        form.email_template_subject.value = project.email_template_subject || '';
+        form.send_visitor_email.value = project.send_visitor_email ? 'true' : 'false';
+        form.visitor_email_subject.value = project.visitor_email_subject || '';
+        form.visitor_email_body.value = project.visitor_email_body || '';
+        form.attachment_urls.value = (project.attachment_urls || []).join(', ');
+        
+        document.getElementById('modal-title').innerText = 'Edit Project';
+        document.getElementById('project-modal').classList.remove('hidden');
+    }
+
+    function closeProjectModal() {
+        document.getElementById('project-modal').classList.add('hidden');
+    }
+
+    async function saveProject(e) {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+        
+        // Transform fields
+        data.send_visitor_email = data.send_visitor_email === 'true';
+        data.attachment_urls = data.attachment_urls.split(',').map(u => u.trim()).filter(u => u);
+
+        await fetch(`${API_BASE}/projects`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        closeProjectModal();
+        loadProjects();
+    }
+
+    // View Submissions
+    async function viewSubmissions(siteId, siteName) {
+        document.getElementById('current-project-name').innerText = siteName;
+        showView('submissions');
+        
+        const res = await fetch(`${API_BASE}/projects/${siteId}/submissions`);
+        const submissions = await res.json();
+        
+        const tbody = document.getElementById('submissions-table-body');
+        tbody.innerHTML = submissions.map(s => `
+            <tr>
+                <td>${s.id}</td>
+                <td>${new Date(s.created_at).toLocaleString()}</td>
+                <td>
+                    <pre style="max-height: 100px; overflow: auto; background: #f9fafb; padding: 5px; border-radius: 4px;">${JSON.stringify(s.data, null, 2)}</pre>
+                </td>
+                <td>${s.metadata?.origin || '-'}</td>
+            </tr>
+        `).join('');
+    }
+
+    // Init
+    loadProjects();
+</script>
+
+</body>
+</html>

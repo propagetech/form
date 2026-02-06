@@ -1,0 +1,11 @@
+{
+  "name": "lambda-form-handler",
+  "version": "1.0.0",
+  "description": "Serverless Form Handler",
+  "main": "src/index.js",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.984.0",
+    "@aws-sdk/client-sesv2": "^3.984.0",
+    "@aws-sdk/lib-dynamodb": "^3.984.0"
+  }
+}

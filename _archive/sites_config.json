@@ -1,0 +1,41 @@
+[
+  {
+    "id": "site_001",
+    "domain": "example-form-1.com",
+    "owner_email": "owner1@example.com",
+    "theme": {
+      "primary_color": "#007bff",
+      "font": "Arial, sans-serif"
+    },
+    "forms": [
+      {
+        "id": "contact_us",
+        "title": "Contact Us",
+        "fields": [
+          {"name": "full_name", "type": "text", "label": "Full Name", "required": true},
+          {"name": "email", "type": "email", "label": "Email Address", "required": true},
+          {"name": "message", "type": "textarea", "label": "Message", "required": true}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "site_002",
+    "domain": "example-service-2.com",
+    "owner_email": "owner2@example.com",
+    "theme": {
+      "primary_color": "#28a745",
+      "font": "Helvetica, sans-serif"
+    },
+    "forms": [
+      {
+        "id": "quote_request",
+        "title": "Get a Quote",
+        "fields": [
+          {"name": "company", "type": "text", "label": "Company Name", "required": true},
+          {"name": "budget", "type": "number", "label": "Estimated Budget", "required": false}
+        ]
+      }
+    ]
+  }
+]

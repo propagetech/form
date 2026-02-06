@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # 1. Database
+  db:
+    image: postgres:15-alpine
+    container_name: forms_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-mysecretpassword}
+      POSTGRES_DB: ${DB_NAME:-forms_db}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+
+  # 2. Backend API
+  api:
+    build: ./backend
+    container_name: forms_api
+    restart: always
+    environment:
+      - PORT=3000
+      - DB_HOST=db
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-mysecretpassword}
+      - DB_NAME=${DB_NAME:-forms_db}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - SENDER_EMAIL=${SENDER_EMAIL}
+    depends_on:
+      - db
+    networks:
+      - app_network
+
+  # 3. Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: forms_nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./dist:/usr/share/nginx/html:ro # Serve generated static sites
+    depends_on:
+      - api
+    networks:
+      - app_network
+
+volumes:
+  db_data:
+
+networks:
+  app_network:
+    driver: bridge
