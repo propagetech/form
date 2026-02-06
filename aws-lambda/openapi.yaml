@@ -1,0 +1,147 @@
+openapi: 3.0.0
+info:
+  title: Form Management API
+  description: >
+    Dedicated API service for managing 50+ static websites.
+    Handles form submissions (Public) and dashboard management (Admin).
+    Supports GitHub Pages via CORS.
+  version: 1.0.0
+servers:
+  - url: https://api.example.com/prod
+    description: Production Server
+
+paths:
+  /submit/{siteId}:
+    post:
+      summary: Submit a new form entry
+      description: Public endpoint for submitting form data. Rate limited.
+      parameters:
+        - in: path
+          name: siteId
+          required: true
+          schema:
+            type: string
+          description: The ID of the website (e.g., site_001)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                formName:
+                  type: string
+                data:
+                  type: object
+                metadata:
+                  type: object
+      responses:
+        '200':
+          description: Submission successful
+        '400':
+          description: Invalid input
+        '500':
+          description: Server error
+      x-amazon-apigateway-integration:
+        uri: "arn:aws:apigateway:${AWS_REGION}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS_REGION}:${AWS_ACCOUNT_ID}:function:LambdaContactForm/invocations"
+        httpMethod: POST
+        type: aws_proxy
+
+  /admin/dashboard:
+    get:
+      summary: Retrieve Sites, Forms, or Entries
+      description: Admin endpoint. Protected by API Key.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: query
+          name: siteId
+          schema:
+            type: string
+          description: Filter by Site ID
+        - in: query
+          name: formName
+          schema:
+            type: string
+          description: Filter by Form Name
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Data retrieved successfully
+        '401':
+          description: Unauthorized
+      x-amazon-apigateway-integration:
+        uri: "arn:aws:apigateway:${AWS_REGION}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS_REGION}:${AWS_ACCOUNT_ID}:function:LambdaDashboardAPI/invocations"
+        httpMethod: POST
+        type: aws_proxy
+
+    delete:
+      summary: Delete a submission
+      description: Admin endpoint.
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [siteId, formName, timestamp, uuid]
+              properties:
+                siteId:
+                  type: string
+                formName:
+                  type: string
+                timestamp:
+                  type: string
+                uuid:
+                  type: string
+      responses:
+        '200':
+          description: Deleted successfully
+      x-amazon-apigateway-integration:
+        uri: "arn:aws:apigateway:${AWS_REGION}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS_REGION}:${AWS_ACCOUNT_ID}:function:LambdaDashboardAPI/invocations"
+        httpMethod: POST
+        type: aws_proxy
+
+    put:
+      summary: Update a submission
+      description: Admin endpoint.
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [siteId, formName, timestamp, uuid, updates]
+              properties:
+                siteId:
+                  type: string
+                formName:
+                  type: string
+                timestamp:
+                  type: string
+                uuid:
+                  type: string
+                updates:
+                  type: object
+      responses:
+        '200':
+          description: Updated successfully
+      x-amazon-apigateway-integration:
+        uri: "arn:aws:apigateway:${AWS_REGION}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS_REGION}:${AWS_ACCOUNT_ID}:function:LambdaDashboardAPI/invocations"
+        httpMethod: POST
+        type: aws_proxy
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key

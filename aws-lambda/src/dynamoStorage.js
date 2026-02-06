@@ -1,5 +1,5 @@
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { DynamoDBDocumentClient, PutCommand, QueryCommand, UpdateCommand } = require("@aws-sdk/lib-dynamodb");
+const { DynamoDBDocumentClient, PutCommand, QueryCommand, UpdateCommand, DeleteCommand } = require("@aws-sdk/lib-dynamodb");
 const crypto = require("crypto");
 
 const ddbClient = new DynamoDBClient({ region: process.env.AWS_REGION });
@@ -35,7 +35,7 @@ async function saveSubmission(siteId, formName, data, metadata) {
         Item: submissionItem
     }));
 
-    // 2. Update Form Metadata (Fire and forget or await, depending on consistency needs. Await is safer)
+    // 2. Update Form Metadata
     try {
         await docClient.send(new UpdateCommand({
             TableName: TABLE_NAME,
@@ -53,10 +53,66 @@ async function saveSubmission(siteId, formName, data, metadata) {
         }));
     } catch (e) {
         console.warn("Failed to update form metadata:", e.message);
-        // Non-fatal
     }
 
     return { id: uuid, timestamp };
+}
+
+/**
+ * Delete a submission.
+ * Note: Requires exact timestamp to construct the SK.
+ * If timestamp is not provided, we might need to query first (less efficient).
+ * For this API, we will require 'timestamp' and 'id' in the request to delete.
+ */
+async function deleteSubmission(siteId, formName, timestamp, uuid) {
+    const safeFormName = (formName || "default").replace(/[^a-zA-Z0-9-_]/g, "_");
+    
+    await docClient.send(new DeleteCommand({
+        TableName: TABLE_NAME,
+        Key: {
+            PK: `SITE#${siteId}`,
+            SK: `SUBMISSION#${safeFormName}#${timestamp}#${uuid}`
+        }
+    }));
+    
+    // Optional: Decrement count (skipping for simplicity/performance as counts are approximate metrics)
+    return true;
+}
+
+/**
+ * Update a submission (e.g. mark as read, update data).
+ */
+async function updateSubmission(siteId, formName, timestamp, uuid, updates) {
+    const safeFormName = (formName || "default").replace(/[^a-zA-Z0-9-_]/g, "_");
+    
+    // Construct UpdateExpression dynamically
+    let updateExp = "SET";
+    const expNames = {};
+    const expValues = {};
+    
+    Object.keys(updates).forEach((key, idx) => {
+        const attrName = `#attr${idx}`;
+        const attrVal = `:val${idx}`;
+        updateExp += ` ${attrName} = ${attrVal},`;
+        expNames[attrName] = key;
+        expValues[attrVal] = updates[key];
+    });
+    
+    // Remove trailing comma
+    updateExp = updateExp.slice(0, -1);
+
+    await docClient.send(new UpdateCommand({
+        TableName: TABLE_NAME,
+        Key: {
+            PK: `SITE#${siteId}`,
+            SK: `SUBMISSION#${safeFormName}#${timestamp}#${uuid}`
+        },
+        UpdateExpression: updateExp,
+        ExpressionAttributeNames: expNames,
+        ExpressionAttributeValues: expValues
+    }));
+    
+    return true;
 }
 
 /**
@@ -110,4 +166,4 @@ async function getSubmissions(siteId, formName, limit = 50, startKey = null) {
     };
 }
 
-module.exports = { saveSubmission, getForms, getSubmissions };
+module.exports = { saveSubmission, deleteSubmission, updateSubmission, getForms, getSubmissions };

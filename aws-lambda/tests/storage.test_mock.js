@@ -1,5 +1,5 @@
-const { saveSubmission, getForms, getSubmissions } = require("../src/dynamoStorage");
-const { DynamoDBDocumentClient, PutCommand, UpdateCommand, QueryCommand } = require("@aws-sdk/lib-dynamodb");
+const { saveSubmission, getForms, getSubmissions, deleteSubmission, updateSubmission } = require("../src/dynamoStorage");
+const { DynamoDBDocumentClient, PutCommand, UpdateCommand, QueryCommand, DeleteCommand } = require("@aws-sdk/lib-dynamodb");
 const { mockClient } = require("aws-sdk-client-mock");
 
 // Mock the DynamoDB Document Client
@@ -17,11 +17,12 @@ async function runTests() {
     const formName = "contact_us";
     const data = { name: "John Doe", email: "john@example.com" };
     const metadata = { ip: "127.0.0.1" };
+    let submissionResult;
 
     try {
-        const result = await saveSubmission(siteId, formName, data, metadata);
-        console.log("✅ saveSubmission passed:", result);
-        if (!result.id || !result.timestamp) throw new Error("Missing ID or timestamp");
+        submissionResult = await saveSubmission(siteId, formName, data, metadata);
+        console.log("✅ saveSubmission passed:", submissionResult);
+        if (!submissionResult.id || !submissionResult.timestamp) throw new Error("Missing ID or timestamp");
     } catch (e) {
         console.error("❌ saveSubmission failed:", e);
     }
@@ -63,11 +64,27 @@ async function runTests() {
         console.error("❌ getSubmissions failed:", e);
     }
 
+    // Test 4: Update Submission
+    console.log("\nTest 4: updateSubmission");
+    ddbMock.on(UpdateCommand).resolves({});
+    try {
+        await updateSubmission(siteId, formName, submissionResult.timestamp, submissionResult.id, { read: true });
+        console.log("✅ updateSubmission passed");
+    } catch (e) {
+        console.error("❌ updateSubmission failed:", e);
+    }
+
+    // Test 5: Delete Submission
+    console.log("\nTest 5: deleteSubmission");
+    ddbMock.on(DeleteCommand).resolves({});
+    try {
+        await deleteSubmission(siteId, formName, submissionResult.timestamp, submissionResult.id);
+        console.log("✅ deleteSubmission passed");
+    } catch (e) {
+        console.error("❌ deleteSubmission failed:", e);
+    }
+
     console.log("\n🏁 Tests Complete.");
 }
 
-// Since we can't easily install 'aws-sdk-client-mock' in this environment without user interaction,
-// We will demonstrate the test logic. If the user runs this, they need to install the mock lib.
-// For now, I will write a simple manual mock version that doesn't require external libs, 
-// so the user can run it immediately to verify logic.
 runTests().catch(console.error);
